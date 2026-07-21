@@ -10,7 +10,6 @@ vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.signcolumn = "yes"
 vim.opt.shiftwidth = 4
-vim.opt.completeopt = { "menuone", "noselect", "popup" }
 
 vim.keymap.set("n", "<C-h>", "<C-w><C-h>")
 vim.keymap.set("n", "<C-l>", "<C-w><C-l>")
@@ -19,7 +18,6 @@ vim.keymap.set("n", "<C-k>", "<C-w><C-k>")
 vim.keymap.set("n", "<Esc>", ":noh<CR>")
 vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist)
 vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>")
-vim.keymap.set("i", "<C-Space>", function() vim.lsp.completion.get() end)
 vim.keymap.set("n", "gd", vim.lsp.buf.definition)
 vim.keymap.set("n", "gr", vim.lsp.buf.references)
 vim.keymap.set("n", "K", vim.lsp.buf.hover)
@@ -34,16 +32,47 @@ vim.api.nvim_set_keymap("n", "<leader>r", ":RnvimrToggle<CR>", { noremap = true,
 vim.api.nvim_set_keymap("n", "<leader>t", ":MyToggleTerm<CR>", { noremap = true, silent = true })
 vim.keymap.set("t", "<C-g>", "<C-\\><C-n>:MyTermCd<CR>a", { noremap = true, silent = true })
 
-vim.api.nvim_create_autocmd("LspAttach", {
+vim.api.nvim_create_autocmd("FileType", {
     callback = function(args)
-        local client = vim.lsp.get_client_by_id(args.data.client_id)
-     
-        if client
-            and client:supports_method("textDocument/completion")
-        then
-            vim.lsp.completion.enable(true, client.id, args.buf, {
-                autotrigger = true,
-            })
+        local ft = vim.bo[args.buf].ft
+        
+        local ok, ts = pcall(require, "nvim-treesitter")
+        if not ok then
+            pcall(vim.treesitter.start, args.buf)
+            return
+        end
+
+        local lang = vim.treesitter.language.get_lang(ft) or ft
+        local available = vim.tbl_contains(ts.get_available(), lang)
+
+        if available then
+            local installed = vim.tbl_contains(ts.get_installed(), lang)
+
+            if not installed then
+                vim.schedule(function()
+                    local choice = vim.fn.confirm(
+                        string.format("Treesitter parser (%s) isn't installed yet, do you want to install? ", lang),
+                        "&Yes\n&No",
+                        2
+                    )
+                    if choice == 1 then
+                        vim.notify(string.format("Installing parser (%s) ...", lang))
+                        local success = pcall(function()
+                            ts.install({ lang }):wait(30000)
+                        end)
+                        
+                        if success then
+                            pcall(vim.treesitter.start, args.buf)
+                        else
+                            vim.notify("Failed or timed out installing parser.", vim.log.levels.ERROR)
+                        end
+                    end
+                end)
+            else
+                pcall(vim.treesitter.start, args.buf)
+            end
+        else
+            pcall(vim.treesitter.start, args.buf)
         end
     end,
 })
@@ -70,50 +99,3 @@ for name, type_ in vim.fs.dir(plugins_dir) do
         dofile(full_path)
     end
 end
-
-vim.api.nvim_create_autocmd("FileType", {
-    callback = function(args)
-        pcall(vim.treesitter.start, args.buf)
-    end,
-})
-
-local timer = vim.uv.new_timer()
-local just_entered_insert = false
-
-vim.api.nvim_create_autocmd("InsertEnter", {
-    callback = function()
-        just_entered_insert = true
-
-        vim.defer_fn(function()
-            just_entered_insert = false
-        end, 100)
-    end,
-})
-
-vim.api.nvim_create_autocmd("TextChangedI", {
-    callback = function()
-        if just_entered_insert or not timer then
-            return
-        end
-
-        local col = vim.api.nvim_win_get_cursor(0)[2]
-        local line = vim.api.nvim_get_current_line()
-
-        if col == 0 then
-            return
-        end
-
-        local prev = line:sub(col, col)
-
-        if not prev:match("[%w_]") then
-            return
-        end
-
-        timer:stop()
-        timer:start(120, 0, vim.schedule_wrap(function()
-            if vim.fn.pumvisible() == 0 then
-                vim.lsp.completion.get()
-            end
-        end))
-    end,
-})

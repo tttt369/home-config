@@ -2,9 +2,9 @@
 Encoding=UTF-8
 Version=0.9.4
 Type=Application
-Name=brightness
+Name=chat-ui
 Comment=
-Exec=xrandr --output HDMI-0 --brightness 0.75
+Exec=sh -c "cd ~/git/chat-ui && npm run dev"
 OnlyShowIn=XFCE;
 RunHook=0
 StartupNotify=false
