@@ -30,67 +30,81 @@ vim.api.nvim_set_keymap("n", "<leader>h", ":HopWordCurrentLineAC<CR>", { noremap
 vim.api.nvim_set_keymap("n", "<leader>H", ":HopWordCurrentLineBC<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>r", ":RnvimrToggle<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>t", ":MyToggleTerm<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>T", ":TSinstallAuto<CR>", { noremap = true, silent = true })
 vim.keymap.set("t", "<C-g>", "<C-\\><C-n>:MyTermCd<CR>a", { noremap = true, silent = true })
 
-vim.api.nvim_create_autocmd("FileType", {
-    callback = function(args)
-        local ft = vim.bo[args.buf].ft
-        
-        local ok, ts = pcall(require, "nvim-treesitter")
-        if not ok then
-            pcall(vim.treesitter.start, args.buf)
-            return
-        end
+vim.api.nvim_create_user_command("TSinstallAuto", function()
+    local ft = vim.bo.filetype
 
-        local lang = vim.treesitter.language.get_lang(ft) or ft
-        local available = vim.tbl_contains(ts.get_available(), lang)
-
-        if available then
-            local installed = vim.tbl_contains(ts.get_installed(), lang)
-
-            if not installed then
-                vim.schedule(function()
-                    local choice = vim.fn.confirm(
-                        string.format("Treesitter parser (%s) isn't installed yet, do you want to install? ", lang),
-                        "&Yes\n&No",
-                        2
-                    )
-                    if choice == 1 then
-                        vim.notify(string.format("Installing parser (%s) ...", lang))
-                        local success = pcall(function()
-                            ts.install({ lang }):wait(30000)
-                        end)
-                        
-                        if success then
-                            pcall(vim.treesitter.start, args.buf)
-                        else
-                            vim.notify("Failed or timed out installing parser.", vim.log.levels.ERROR)
-                        end
-                    end
-                end)
-            else
-                pcall(vim.treesitter.start, args.buf)
-            end
-        else
-            pcall(vim.treesitter.start, args.buf)
-        end
-    end,
-})
-
-local lsp_dir = vim.fn.stdpath("config") .. "/lsp"
-for name, type_ in vim.fs.dir(lsp_dir) do
-    if type_ == "file"
-        and name:sub(-4) == ".lua"
-        and name:sub(1, 1) ~= "."
-    then
-        local server = name:gsub("%.lua$", "")
-        
-        local full_path = lsp_dir .. "/" .. name
-        local config = dofile(full_path)
-        vim.lsp.config(server, config)
-        vim.lsp.enable(server)
+    if ft == "" then
+        vim.notify("Current buffer has no filetype.", vim.log.levels.WARN)
+        return
     end
-end
+
+    local ok, ts = pcall(require, "nvim-treesitter")
+    if not ok then
+        vim.notify("nvim-treesitter is not available.", vim.log.levels.ERROR)
+        return
+    end
+
+    local lang = vim.treesitter.language.get_lang(ft) or ft
+    local available = vim.tbl_contains(ts.get_available(), lang)
+
+    if not available then
+        vim.notify(
+            string.format("No Treesitter parser is available for %s.", lang),
+            vim.log.levels.WARN
+        )
+        return
+    end
+
+    local installed = vim.tbl_contains(ts.get_installed(), lang)
+
+    if installed then
+        vim.notify(
+            string.format("Treesitter parser (%s) is already installed.", lang),
+            vim.log.levels.INFO
+        )
+        pcall(vim.treesitter.start, 0)
+        return
+    end
+
+    local choice = vim.fn.confirm(
+        string.format(
+            "Treesitter parser (%s) isn't installed yet, do you want to install?",
+            lang
+        ),
+        "&Yes\n&No",
+        2
+    )
+
+    if choice ~= 1 then
+        return
+    end
+
+    vim.notify(string.format("Installing parser (%s) ...", lang))
+
+    local success, err = pcall(function()
+        ts.install({ lang }):wait(30000)
+    end)
+
+    if success then
+        vim.notify(
+            string.format("Treesitter parser (%s) installed.", lang),
+            vim.log.levels.INFO
+        )
+        pcall(vim.treesitter.start, 0)
+    else
+        vim.notify(
+            string.format(
+                "Failed or timed out installing parser (%s): %s",
+                lang,
+                tostring(err)
+            ),
+            vim.log.levels.ERROR
+        )
+    end
+end, {})
 
 local plugins_dir = vim.fn.stdpath("config") .. "/plugins"
 for name, type_ in vim.fs.dir(plugins_dir) do
@@ -99,3 +113,5 @@ for name, type_ in vim.fs.dir(plugins_dir) do
         dofile(full_path)
     end
 end
+
+vim.lsp.enable({ "lua_ls", "pyright", "clangd", "ts_ls" })

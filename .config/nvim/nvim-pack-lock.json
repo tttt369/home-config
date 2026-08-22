@@ -24,6 +24,10 @@
       "rev": "bb85e4bfc8d89b0e62c8fa53ccdd13d12e2f77b3",
       "src": "https://github.com/rebelot/kanagawa.nvim"
     },
+    "nvim-lspconfig": {
+      "rev": "a00eb57db2ef4d1ff2d4ef50ead2029cebd09f01",
+      "src": "https://github.com/neovim/nvim-lspconfig"
+    },
     "nvim-toggle-terminal": {
       "rev": "bde863fd4fa141ff9180fdad717f3eb8eecc7652",
       "src": "https://github.com/tttt369/nvim-toggle-terminal"
