@@ -31,6 +31,7 @@ vim.api.nvim_set_keymap("n", "<leader>H", ":HopWordCurrentLineBC<CR>", { noremap
 vim.api.nvim_set_keymap("n", "<leader>r", ":RnvimrToggle<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>t", ":MyToggleTerm<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>T", ":TSinstallAuto<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>p", ":GetPath<CR>", { noremap = true, silent = true })
 vim.keymap.set("t", "<C-g>", "<C-\\><C-n>:MyTermCd<CR>a", { noremap = true, silent = true })
 
 vim.api.nvim_create_user_command("TSinstallAuto", function()
@@ -106,6 +107,17 @@ vim.api.nvim_create_user_command("TSinstallAuto", function()
     end
 end, {})
 
+vim.api.nvim_create_autocmd("FileType", {
+    callback = function(args)
+        local ft = vim.bo[args.buf].filetype
+        local lang = vim.treesitter.language.get_lang(ft) or ft
+
+        if pcall(vim.treesitter.language.add, lang) then
+            pcall(vim.treesitter.start, args.buf, lang)
+        end
+    end,
+})
+
 local plugins_dir = vim.fn.stdpath("config") .. "/plugins"
 for name, type_ in vim.fs.dir(plugins_dir) do
     if type_ == "file" and name:match("%.lua$") then
@@ -114,4 +126,4 @@ for name, type_ in vim.fs.dir(plugins_dir) do
     end
 end
 
-vim.lsp.enable({ "lua_ls", "pyright", "clangd", "ts_ls" })
+vim.lsp.enable({ "lua_ls", "pyright", "clangd", "ts_ls", "html" })

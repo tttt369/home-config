@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+if [ "$#" -lt 1 ]; then
+  echo "usage: $0 file1 [file2 ...]"
+  exit 1
+fi
+
+{
+  echo "pwd" && pwd
+  for file in "$@"; do
+    if [ ! -f "$file" ]; then
+      echo "warning: $file is not file. skipping..." >&2
+      continue
+    fi
+
+    echo "\`\`\`$file"
+    cat "$file"
+    echo "\`\`\`"
+    echo
+  done
+} | xclip -selection clipboard
+
+echo "successfully copy to clipboard"

@@ -186,6 +186,13 @@ text/vnd.plantuml=nvim.desktop
 application/epub+zip=org.gnome.FileRoller.desktop
 image/jpeg=org.xfce.ristretto.desktop
 application/x-desktop=nvim.desktop
+application/pdf=floorp.desktop
+x-scheme-handler/discord-1216669957799018608=discord-1216669957799018608.desktop
+image/png=org.xfce.ristretto.desktop
+audio/x-opus+ogg=org.xfce.Parole.desktop
+audio/vnd.wave=org.xfce.Parole.desktop
+application/x-godot-scene=nvim.desktop
+application/x-zerosize=nvim.desktop
 
 [Added Associations]
 x-scheme-handler/http=userapp-Floorp-JP2PQ3.desktop;xfce4-web-browser.desktop;
@@ -369,4 +376,10 @@ application/x-extension-xhtml=nvim.desktop;
 application/epub+zip=org.gnome.FileRoller.desktop;
 image/jpeg=org.xfce.ristretto.desktop;
 application/x-desktop=nvim.desktop;
-
+application/pdf=floorp.desktop;
+image/png=org.xfce.ristretto.desktop;
+audio/x-opus+ogg=org.xfce.Parole.desktop;
+audio/vnd.wave=org.xfce.Parole.desktop;
+application/x-bat=nvim.desktop;
+application/x-godot-scene=nvim.desktop;
+application/x-zerosize=nvim.desktop;
